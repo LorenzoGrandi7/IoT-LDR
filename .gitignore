@@ -3,3 +3,4 @@
 *.pyd
 *.json
 __pycache__/
+Arduino/
