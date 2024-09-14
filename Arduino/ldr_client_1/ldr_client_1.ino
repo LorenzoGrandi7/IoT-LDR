@@ -3,16 +3,15 @@
 #include "coap-simple.h"
 #include "PubSubClient.h"
 
-// Wi-Fi settings ========================
-// #define WIFI_SSID FRITZ!Box 7590 Fabio
-// #define WIFI_PW   73622386758528572341
+// #define WIFI_SSID *******
+// #define WIFI_PW   *******
 // #define COAP_SERVER IPAddress(x, x, x, x)     // Using home Wi-Fi
-// #define MQTT_SERVER "x.x.x.x"
+// #define MQTT_SERVER "192.168.178.78"
 
 #define COAP_PORT 5683
 #define MQTT_PORT 1883
-#define MQTT_USER "**********"
-#define MQTT_PASSWORD "**********"
+#define MQTT_USER "lorenzo"
+#define MQTT_PASSWORD "11235813"
 
 #define SAMPLING_PERIOD_TOPIC "home/ldr1/sampling_period"
 #define POSITION_TOPIC "home/ldr1/position"
