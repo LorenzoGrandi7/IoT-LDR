@@ -6,7 +6,7 @@
 // #define WIFI_SSID *******
 // #define WIFI_PW   *******
 // #define COAP_SERVER IPAddress(x, x, x, x)     // Using home Wi-Fi
-// #define MQTT_SERVER "192.168.178.78"
+// #define MQTT_SERVER "x.x.x.x"
 
 #define COAP_PORT 5683
 #define MQTT_PORT 1883
