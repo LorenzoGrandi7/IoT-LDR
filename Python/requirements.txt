@@ -1,0 +1,9 @@
+influxdb_client
+numpy
+aiocoap
+asyncio
+paho-mqtt
+pandas
+scikit-learn
+colorama
+watchdog
