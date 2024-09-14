@@ -1,6 +1,6 @@
 *.pyc
 *.pyo
 *.pyd
-*.json
+default_config.json
 __pycache__/
 Arduino/
