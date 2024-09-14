@@ -10,8 +10,8 @@
 
 #define COAP_PORT 5683
 #define MQTT_PORT 1883
-#define MQTT_USER "lorenzo"
-#define MQTT_PASSWORD "11235813"
+#define MQTT_USER "********"
+#define MQTT_PASSWORD "********"
 
 #define SAMPLING_PERIOD_TOPIC "home/ldr1/sampling_period"
 #define POSITION_TOPIC "home/ldr1/position"
