@@ -28,8 +28,6 @@
 #define SAMPLING_PERIOD_TOPIC "home/ldr1/sampling_period"
 #define POSITION_TOPIC "home/ldr1/position"
 
-mi piace il pisello
-
 const uint8_t ldr_pin = 0;
 
 WiFiUDP udp;
