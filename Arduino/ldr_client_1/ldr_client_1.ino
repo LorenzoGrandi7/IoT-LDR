@@ -4,8 +4,8 @@
 #include "PubSubClient.h"
 
 // Wi-Fi settings ========================
-// #define WIFI_SSID FRITZ!Box 7590 Fabio
-// #define WIFI_PW   73622386758528572341
+// #define WIFI_SSID **********
+// #define WIFI_PW   **********
 // #define COAP_SERVER IPAddress(x, x, x, x)     // Using home Wi-Fi
 // #define MQTT_SERVER "x.x.x.x"
 
