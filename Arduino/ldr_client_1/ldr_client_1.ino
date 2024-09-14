@@ -4,27 +4,15 @@
 #include "PubSubClient.h"
 
 // Wi-Fi settings ========================
-// #define WIFI_SSID "FRITZ!Box 7590 Fabio"
-// #define WIFI_PW   "73622386758528572341"
-// #define COAP_SERVER IPAddress(192, 168, 178, 78)     // Using home Wi-Fi
-// #define MQTT_SERVER "192.168.178.78"
-
-// Wi-Fi Modena ========================
-// #define WIFI_SSID "TIM-29526751"
-// #define WIFI_PW   "MacH3rmanos"
-// #define COAP_SERVER IPAddress(192, 168, 1, 218)     // Using home Wi-Fi
-// #define MQTT_SERVER "192.168.1.218"
-
-// Hotspot settings ======================
-#define WIFI_SSID "Lorenzo"
-#define WIFI_PW   "11235813"
-#define COAP_SERVER IPAddress(172, 20, 10, 5)           // Using phone as hotspot
-#define MQTT_SERVER "172.20.10.5"
+// #define WIFI_SSID FRITZ!Box 7590 Fabio
+// #define WIFI_PW   73622386758528572341
+// #define COAP_SERVER IPAddress(x, x, x, x)     // Using home Wi-Fi
+// #define MQTT_SERVER "x.x.x.x"
 
 #define COAP_PORT 5683
 #define MQTT_PORT 1883
-#define MQTT_USER "lorenzo"
-#define MQTT_PASSWORD "11235813"
+#define MQTT_USER "**********"
+#define MQTT_PASSWORD "**********"
 
 #define SAMPLING_PERIOD_TOPIC "home/ldr1/sampling_period"
 #define POSITION_TOPIC "home/ldr1/position"
