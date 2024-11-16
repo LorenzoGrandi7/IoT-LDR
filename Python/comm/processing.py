@@ -16,10 +16,12 @@ limitations under the License.
 
 from prophet import Prophet
 import pandas as pd
+import numpy as np
 from datetime import datetime
 import logging
 import sys
 sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
+from sklearn.preprocessing import StandardScaler
 
 from comm import LdrSensorManager
 from comm import DBClient
@@ -64,35 +66,37 @@ def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str]) ->
     Exception
         If any error occurs during the prediction process, it will be caught and logged.
     """
-    try:
-        # Initialize the DB client with the given configuration
-        db_client = DBClient(influxdb_cfg['token'], influxdb_cfg['org'], influxdb_cfg['url'], influxdb_cfg['bucket'])
+    scaler = StandardScaler()
 
-        # Load the past 24 hours of LDR sensor data from the database
-        time_series_df = db_client.load_timeseries("24h", ldr_sensor.sensor_id)
-        
-        # Preprocess the time series data to remove outliers
-        time_series_preprocess_df = preprocess_timeseries(time_series_df, 1.5)
+    # Initialize the DB client with the given configuration
+    db_client = DBClient(influxdb_cfg['token'], influxdb_cfg['org'], influxdb_cfg['url'], influxdb_cfg['bucket'])
 
-        # Create and fit the Prophet model on the preprocessed data
-        model = Prophet(interval_width=0.95, daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False)
-        model.fit(time_series_preprocess_df)
-        
-        # Generate predictions for the next period based on the sensor's sampling period
-        period = int(30 * 60 / ldr_sensor.cs_sampling_period)  # 30 minutes worth of future data
-        future_points = model.make_future_dataframe(periods=period, freq=f'{ldr_sensor.cs_sampling_period}s')
-        
-        # Get the predicted values for the future points
-        pred_df = model.predict(future_points)
-        future_val = pred_df[pred_df['ds'] > datetime.now()]  # Filter future values after current time
+    # Load the past 24 hours of LDR sensor data from the database
+    time_series_df = db_client.load_timeseries("24h", ldr_sensor.sensor_id)
+    
+    # Preprocess the time series data to remove outliers
+    time_series_preprocess_df = preprocess_timeseries(time_series_df, 1.5)
+    y_values = time_series_preprocess_df['y'].values.reshape(-1, 1)
+    time_series_preprocess_df['y'] = scaler.fit_transform(y_values)
 
-        # Log the predictions for the sensor
-        logger.info(f"Predictions LDR{ldr_sensor.sensor_id}: \n{future_val[['yhat']].head(2)}")
-        
-        # Store the predictions back in the database
-        db_client.store_predictions(future_val, ldr_sensor.sensor_id)
-    except Exception as e:
-        logger.error(f"Exception: {e}")
+    # Create and fit the Prophet model on the preprocessed data
+    model = Prophet(interval_width=0.95, daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False)
+    model.fit(time_series_preprocess_df)
+    
+    # Generate predictions for the next period based on the sensor's sampling period
+    period = int(30 * 60 / ldr_sensor.cs_sampling_period)  # 30 minutes worth of future data
+    future_points = model.make_future_dataframe(periods=period, freq=f'{ldr_sensor.cs_sampling_period}s')
+    
+    # Get the predicted values for the future points
+    pred_df = model.predict(future_points)
+    pred_df['yhat'] = scaler.inverse_transform(pred_df[['yhat']])
+    future_val = pred_df[pred_df['ds'] > datetime.now()]  # Filter future values after current time
+
+    # Log the predictions for the sensor
+    logger.info(f"Predictions LDR{ldr_sensor.sensor_id}: \n{future_val[['yhat']].head(2)}")
+    
+    # Store the predictions back in the database
+    db_client.store_predictions(future_val, ldr_sensor.sensor_id)
 
 
 def preprocess_timeseries(time_series_df: pd.DataFrame, std_threshold: float, window_size: str = "24h") -> pd.DataFrame:
@@ -159,4 +163,8 @@ def preprocess_timeseries(time_series_df: pd.DataFrame, std_threshold: float, wi
     # Reset index and return the cleaned DataFrame
     time_series_copy_df.reset_index(inplace=True)
     time_series_processed_df.reset_index(inplace=True)
+
+    time_series_processed_df['y'] = pd.to_numeric(time_series_processed_df['y'], errors='coerce')
+    time_series_processed_df.dropna(subset=['y'], inplace=True)
+
     return time_series_processed_df
