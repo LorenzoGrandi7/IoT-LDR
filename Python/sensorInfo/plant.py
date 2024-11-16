@@ -18,29 +18,60 @@ from dataclasses import dataclass
 
 @dataclass
 class Plant():
-    """Plant dataclass"""
+    """
+    A dataclass representing a plant.
+
+    This class holds information about the plant's type, the amount of sunlight it 
+    needs (in hours), and the associated sensor ID for monitoring purposes.
+
+    Attributes
+    ----------
+    type : str
+        The type of the plant (e.g., "Cactus", "Fern").
+    light_amount : int
+        The number of hours the plant needs exposure to sunlight per day.
+    sensor_id : str
+        The unique identifier for the sensor associated with this plant.
+
+    Methods
+    -------
+    update_plant(type=None, light_amount=None, sensor_id=None)
+        Updates the plant's attributes with the new values provided.
+    """
+
     type: str
-    """Type of the plant"""
+    """The type of the plant (e.g., "Cactus", "Fern")"""
+    
     light_amount: int
-    """Number of ours the plant needs exposure to sunlight"""
+    """The number of hours of sunlight the plant needs per day"""
+    
     sensor_id: str
-    """Associated sensor ID"""
-        
+    """The unique identifier for the sensor associated with this plant"""
+
     def update_plant(self, type: str = None, light_amount: int = None, sensor_id: str = None) -> None:
         """
-        Update the plant settings
-        
+        Update the plant settings with new values.
+
+        This method allows for updating one or more attributes of the plant object.
+        If any of the parameters are provided (i.e., not None), they will update the 
+        corresponding attributes of the plant.
+
         Parameters
         ----------
-        **type** : str
-            New name of the plant
-        **light_amount** : int
-            New light amount of the plant
-        **sensor_id** : str
-            New sensor ID for the plant
+        type : str, optional
+            The new type of the plant (e.g., "Cactus", "Fern"). Defaults to None.
+        light_amount : int, optional
+            The new number of hours the plant requires exposure to sunlight. Defaults to None.
+        sensor_id : str, optional
+            The new sensor ID associated with the plant. Defaults to None.
+
+        Returns
+        -------
+        None
+            This method updates the plant attributes in place and does not return any value.
         """
         if type:
-            self.name = type
+            self.type = type
         if light_amount:
             self.light_amount = light_amount
         if sensor_id:

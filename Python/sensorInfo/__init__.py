@@ -13,8 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
 
-from .plant import Plant
-from .position import Position
+from .plant import *
+from .position import *
 
 __all__ = ['Plant', 'Position']

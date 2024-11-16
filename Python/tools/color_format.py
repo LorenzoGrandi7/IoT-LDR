@@ -17,19 +17,46 @@ limitations under the License.
 from colorama import Fore, Style, init
 import logging
 
+# Initialize colorama to automatically reset colors after each log message.
 init(autoreset=True)
 
 class ColorFormatter(logging.Formatter):
+    """
+    Custom logging formatter that adds color to log messages based on their severity.
+    
+    This formatter uses colorama to format log messages with different colors for
+    each logging level: DEBUG, INFO, WARNING, ERROR, and CRITICAL.
+    """
+
     def format(self, record):
+        """
+        Format the log record with color based on the log level.
+
+        Parameters
+        ----------
+        record : logging.LogRecord
+            The log record to be formatted.
+
+        Returns
+        -------
+        str
+            The formatted log message with the appropriate color.
+        """
+        
+        # Dictionary mapping log levels to colors
         log_colors = {
-            logging.DEBUG: Fore.CYAN,
-            logging.INFO: Fore.GREEN,
-            logging.WARNING: Fore.YELLOW,
-            logging.ERROR: Fore.RED,
-            logging.CRITICAL: Fore.MAGENTA,
+            logging.DEBUG: Fore.CYAN,      # DEBUG messages in Cyan
+            logging.INFO: Fore.GREEN,      # INFO messages in Green
+            logging.WARNING: Fore.YELLOW,  # WARNING messages in Yellow
+            logging.ERROR: Fore.RED,       # ERROR messages in Red
+            logging.CRITICAL: Fore.MAGENTA, # CRITICAL messages in Magenta
         }
 
+        # Get the color for the current log level, default to white if unknown
         level_color = log_colors.get(record.levelno, Fore.WHITE)
+
+        # Format the log message with the selected color and reset the color after
         record.msg = f"{level_color}{record.msg}{Style.RESET_ALL}"
 
+        # Use the default formatter to format the rest of the log record
         return super().format(record)

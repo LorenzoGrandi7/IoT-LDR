@@ -17,6 +17,8 @@ limitations under the License.
 import argparse
 import json
 import os
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
 
 # Color codes for terminal output
 WHITE = "\033[0m"

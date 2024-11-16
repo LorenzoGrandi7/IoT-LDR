@@ -17,5 +17,7 @@ limitations under the License.
 from .ldr_sensor_manager import LdrSensorManager
 from .mqtt_client import MqttClient
 from .db_client import DBClient
+from .processing import *
 
-__all__ = ['LdrSensorManager', 'MqttClient', 'DBClient']
+__all__ = ['LdrSensorManager', 'MqttClient', 'DBClient',
+           'model_predict']

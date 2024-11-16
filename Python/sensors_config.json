@@ -9,11 +9,11 @@
                 "type": "Free"
             },
             "position": {
-                "position_id": "1",
-                "description": "living-room - E",
-                "name": "living-room"
+                "position_id": "3",
+                "description": "bedroom - S",
+                "name": "bedroom"
             },
-            "sampling_period": 60,
+            "sampling_period": 180,
             "accumulation_window": 30
         },
         {
@@ -25,11 +25,11 @@
                 "type": "Plant 1"
             },
             "position": {
-                "position_id": "3",
-                "description": "bedroom - S",
-                "name": "bedroom"
+                "position_id": "1",
+                "description": "living-room - E",
+                "name": "living-room"
             },
-            "sampling_period": 60,
+            "sampling_period": 180,
             "accumulation_window": 30
         }
     ]
