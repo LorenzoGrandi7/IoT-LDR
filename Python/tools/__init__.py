@@ -15,6 +15,8 @@ limitations under the License.
 """
 
 import logging
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from .color_format import ColorFormatter
 from .config_file_handler import ConfigFileHandler

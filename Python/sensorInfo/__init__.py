@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 import sys
-sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from .plant import *
 from .position import *

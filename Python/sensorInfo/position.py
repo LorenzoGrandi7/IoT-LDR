@@ -16,6 +16,8 @@ limitations under the License.
 
 import logging
 from dataclasses import dataclass, field
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 @dataclass
 class Position():

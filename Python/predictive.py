@@ -8,15 +8,12 @@ import asyncio
 import json
 import logging
 from datetime import datetime
-from time import sleep
 import sys
-import matplotlib.pyplot as plt
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
-# Include the project source path for importing modules
-sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
-
-from comm import LdrSensorManager, model_predict
+from comm import LdrSensorManager, model_predict, generate_holidays
 from sensorInfo import *
+from tools import *
 
 # ANSI color codes for terminal output
 WHITE = "\033[0m"
@@ -29,8 +26,10 @@ MAGENTA = "\033[35m"
 BOLD = "\033[1m"
 
 # Initialize logger for the predictive unit
-logger = logging.getLogger('PREDICTIVE UNIT')
+logger = logging.getLogger('predictive unit')
 logger.setLevel(logging.INFO)
+
+current_holidays = None
 
 async def load_default_config() -> dict:
     """
@@ -113,6 +112,15 @@ async def setup_sensors(default_config: dict, sensors_config: dict) -> list:
     
     return ldr_sensors
 
+async def update_holidays():
+    global current_holidays
+
+    while True:
+        # Update holidays once every day
+        current_holidays = generate_holidays(datetime.now().year, datetime.now().date().year + 1)
+        logger.critical("Updating holidays")
+        await asyncio.sleep(86400)
+
 async def reload_sensors():
     """
     Reload sensor configurations and update their instances.
@@ -166,6 +174,7 @@ def welcome_message() -> None:
     )
     print(f"{BLUE}{welcome}{WHITE}")
 
+
 async def main():
     """
     Main function:
@@ -174,6 +183,7 @@ async def main():
     - Reloads sensor configurations periodically.
     """
     global ldr_sensors
+    global current_holidays
 
     # Load default configurations
     default_config = await load_default_config()
@@ -181,18 +191,22 @@ async def main():
     
     # Initialize sensors
     await load_sensors()
+    current_holidays = generate_holidays(datetime.now().year, datetime.now().date().year + 1)
+    asyncio.create_task(update_holidays())
+
     welcome_message()
     
     while True:
-        # Pause for 30 seconds between cycles
-        sleep(30)
-        
-        # Perform prediction for each sensor
-        for ldr_sensor in ldr_sensors:
-            model_predict(ldr_sensor, influxdb_cfg)
+        while current_holidays is None:
+            await asyncio.sleep(1)  # wait for holidays to be initialized
+
+        # Perform in parallel prediction for each sensor
+        await asyncio.gather(*[asyncio.to_thread(model_predict, ldr_sensor, influxdb_cfg, current_holidays) for ldr_sensor in ldr_sensors])
         
         # Reload sensor configurations to reflect updates
         await reload_sensors()
+        # Pause for 30 seconds between cycles
+        await asyncio.sleep(influxdb_cfg['prediction_period_min'] * 60)
 
 if __name__ == "__main__":
     asyncio.run(main())

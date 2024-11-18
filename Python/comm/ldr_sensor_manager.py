@@ -21,12 +21,13 @@ import aiocoap
 import aiocoap.resource as resource
 from aiocoap import Message
 import asyncio
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from sensorInfo.plant import Plant
 from sensorInfo.position import Position
 from comm.mqtt_client import MqttClient
 from comm.db_client import DBClient
-
 
 class LdrSensorManager(resource.Resource):
     """
@@ -57,8 +58,6 @@ class LdrSensorManager(resource.Resource):
         Array to store latency values for analysis.
     ldr_timeseries : np.array
         Stores the time-series data for LDR values.
-    N_predictions : int
-        Number of future LDR predictions to be computed, based on sampling period.
     coap_ldr_value : int
         Latest LDR value received via CoAP communication.
     last_time : float
@@ -112,7 +111,6 @@ class LdrSensorManager(resource.Resource):
         self.latency_list = np.array([], dtype=float)
         self.accum_window_len = accum_window_len * 60 / sampling_period
         self.coap_ldr_value = 0
-        self.N_predictions = influxdb_cfg['N_hours'] * 60 * 60 / sampling_period
         self.ldr_timeseries = np.array([], dtype=int)
 
     def print_info(self) -> None:
@@ -140,7 +138,7 @@ class LdrSensorManager(resource.Resource):
 
         sensor_id = query_params.get('sensor_id')
         location = query_params.get('location')
-        data = int(query_params.get('data'))
+        data = query_params.get('data')
         self.logger.info(f"CoAP message received: ID({sensor_id}) - position({location}) - value({data}%)")
 
         self.store_value(query_params)
@@ -227,6 +225,6 @@ class LdrSensorManager(resource.Resource):
         """
         latency_mean = np.mean(self.latency_list) * 1e6
         self.latency_list = np.array([], dtype=float)
-        logging.info(f"Mean latency sensor {self.sensor_id}: {latency_mean:.2f}us")
+        self.logger.info(f"Mean latency sensor {self.sensor_id}: {latency_mean:.2f}us")
         self.influxdb_client.store_mean_lat_influxdb(latency_mean, self.sensor_id)
         return latency_mean

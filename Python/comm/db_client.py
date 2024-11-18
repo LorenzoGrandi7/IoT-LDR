@@ -23,6 +23,8 @@ import numpy as np
 import pandas as pd
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 class DBClient:
     """
@@ -76,7 +78,7 @@ class DBClient:
             "bucket": db_bucket
         }
 
-    def store_value(self, measurement: str, field: str, sensor_id: str, value: int) -> None:
+    def store_value(self, measurement: str, field: str, sensor_id: str, value: float) -> None:
         """
         Store a single measurement value in the InfluxDB database.
 
@@ -88,7 +90,7 @@ class DBClient:
             Field name under which the value is stored.
         sensor_id : str
             Identifier for the sensor.
-        value : int
+        value : float
             The value to store.
         """
         self.logger.debug(f"Storing value from {sensor_id} in {measurement}: {value}")
@@ -96,20 +98,20 @@ class DBClient:
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
         # Create a point with the given data
-        p = Point(measurement).tag("sensor", sensor_id).field(field, int(value)).time(datetime.now(tz=self.tz), WritePrecision.S)
+        p = Point(measurement).tag("sensor", sensor_id).field(field, float(value)).time(datetime.now(tz=self.tz), WritePrecision.S)
         self.logger.debug(f"Point: {p}")
         
         # Write the point to the database
         write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
         client.close()
 
-    def store_ldr_influxdb(self, ldr_value: int, sensor_id: str) -> None:
+    def store_ldr_influxdb(self, ldr_value: float, sensor_id: str) -> None:
         """
         Store an LDR sensor value in the InfluxDB database.
 
         Parameters
         ----------
-        ldr_value : int
+        ldr_value : float
             The light intensity value measured by the LDR sensor.
         sensor_id : str
             Identifier for the sensor.
@@ -119,7 +121,7 @@ class DBClient:
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
         # Store LDR value as a "ldrValue" measurement
-        p = Point("ldrValue").tag("sensor", sensor_id).field("ldr", int(ldr_value)).time(datetime.now(tz=self.tz), WritePrecision.S)
+        p = Point("ldrValue").tag("sensor", sensor_id).field("ldr", float(ldr_value)).time(datetime.now(tz=self.tz), WritePrecision.S)
         write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
         client.close()
 
@@ -139,7 +141,7 @@ class DBClient:
         write_api = client.write_api(write_options=SYNCHRONOUS)
 
         # Store the mean latency value as a "meanLat" measurement
-        p = Point("meanLat").tag("sensor", sensor_id).field("mean_lat", int(round(mean_lat, 0))).time(datetime.now(tz=self.tz), WritePrecision.S)
+        p = Point("meanLat").tag("sensor", sensor_id).field("mean_lat", float(mean_lat)).time(datetime.now(tz=self.tz), WritePrecision.S)
         write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
         client.close()
 
@@ -213,7 +215,55 @@ class DBClient:
         # Write predictions row by row to the database
         for _, row in predictions_df.iterrows():
             timestamp = pd.to_datetime(row['ds']).tz_localize('Europe/Rome')
-            p = Point("ldrValue").tag("sensor", sensor_id).field("pred", int(row['yhat'])).time(timestamp, WritePrecision.S)
+            p = Point("ldrValue").tag("sensor", sensor_id).field("pred", float(row['yhat'])).time(timestamp, WritePrecision.S)
+            write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
+        
+        client.close()
+
+    def store_predictions_upper(self, predictions_df: pd.DataFrame, sensor_id: str) -> None:
+        """
+        Store predicted values in the InfluxDB database.
+
+        Parameters
+        ----------
+        predictions_df : pd.DataFrame
+            DataFrame containing predicted values with columns `ds` (timestamps)
+            and `yhat` (predicted values).
+        sensor_id : str
+            Identifier for the sensor.
+        """
+        self.logger.debug(f"Storing predicted values for LDR{sensor_id}")
+        client = InfluxDBClient(url=self.db_cfg['url'], token=self.db_cfg['token'], org=self.db_cfg['org'])
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+
+        # Write predictions row by row to the database
+        for _, row in predictions_df.iterrows():
+            timestamp = pd.to_datetime(row['ds']).tz_localize('Europe/Rome')
+            p = Point("ldrValue").tag("sensor", sensor_id).field("pred_upper", float(row['yhat_upper'])).time(timestamp, WritePrecision.S)
+            write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
+        
+        client.close()
+
+    def store_predictions_lower(self, predictions_df: pd.DataFrame, sensor_id: str) -> None:
+        """
+        Store predicted values in the InfluxDB database.
+
+        Parameters
+        ----------
+        predictions_df : pd.DataFrame
+            DataFrame containing predicted values with columns `ds` (timestamps)
+            and `yhat` (predicted values).
+        sensor_id : str
+            Identifier for the sensor.
+        """
+        self.logger.debug(f"Storing predicted values for LDR{sensor_id}")
+        client = InfluxDBClient(url=self.db_cfg['url'], token=self.db_cfg['token'], org=self.db_cfg['org'])
+        write_api = client.write_api(write_options=SYNCHRONOUS)
+
+        # Write predictions row by row to the database
+        for _, row in predictions_df.iterrows():
+            timestamp = pd.to_datetime(row['ds']).tz_localize('Europe/Rome')
+            p = Point("ldrValue").tag("sensor", sensor_id).field("pred_lower", float(row['yhat_lower'])).time(timestamp, WritePrecision.S)
             write_api.write(bucket=self.db_cfg['bucket'], org=self.db_cfg['org'], record=p)
         
         client.close()

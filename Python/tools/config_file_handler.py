@@ -17,6 +17,8 @@ limitations under the License.
 import logging 
 import asyncio
 from watchdog.events import FileSystemEventHandler
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 # Set up logging
 logger = logging.getLogger("ConfigFileHandler")

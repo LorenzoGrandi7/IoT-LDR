@@ -17,10 +17,11 @@ limitations under the License.
 from prophet import Prophet
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
+from dateutil.easter import easter
 import logging
 import sys
-sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 from sklearn.preprocessing import StandardScaler
 
 from comm import LdrSensorManager
@@ -38,8 +39,65 @@ class CmdStanpyFilter(logging.Filter):
 
 logging.getLogger("cmdstanpy").addFilter(CmdStanpyFilter())
 
+from datetime import datetime, timedelta
+from dateutil.easter import easter
 
-def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str]) -> None:
+def generate_holidays(start_year: int, end_year: int) -> pd.DataFrame:
+    """
+    Generates a DataFrame of weekends and public holidays in Italy between the specified years.
+    """
+    # Generate a list of dates for weekends
+    weekends = []
+    for year in range(start_year, end_year + 1):
+        start_date = datetime(year, 1, 1)
+        end_date = datetime(year, 12, 31)
+        current_date = start_date
+        while current_date <= end_date:
+            if current_date.weekday() in [5, 6]:  # Saturday (5) and Sunday (6)
+                weekends.append(current_date)  # Ensure datetime.datetime type
+            current_date += timedelta(days=1)
+
+    # Define fixed-date holidays in Italy
+    fixed_holidays = [
+        "01-01",  # New Year's Day
+        "01-06",  # Epiphany
+        "04-25",  # Liberation Day
+        "05-01",  # International Workers' Day
+        "06-02",  # Republic Day
+        "08-15",  # Assumption Day
+        "11-01",  # All Saints' Day
+        "12-08",  # Immaculate Conception
+        "12-25",  # Christmas Day
+        "12-26",  # St. Stephen's Day
+    ]
+
+    holidays = []
+    for year in range(start_year, end_year + 1):
+        # Add fixed-date holidays
+        for holiday in fixed_holidays:
+            holiday_date = datetime.strptime(f"{year}-{holiday}", "%Y-%m-%d")
+            holidays.append(holiday_date)
+        
+        # Add Easter Monday (Pasquetta)
+        easter_monday = easter(year) + timedelta(days=1)
+        holidays.append(datetime(easter_monday.year, easter_monday.month, easter_monday.day))  # Ensure datetime.datetime type
+
+    # Combine weekends and holidays, removing duplicates
+    all_holidays = list(set(weekends + holidays))
+    all_holidays.sort()
+
+    # Create a DataFrame with holidays
+    holidays_df = pd.DataFrame({
+        'holiday': 'italian_holiday',
+        'ds': all_holidays
+    })
+
+    return holidays_df
+
+    
+
+
+def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str], holidays: pd.DataFrame) -> None:
     """
     Uses the Prophet model to predict future LDR sensor readings based on the past 24 hours of data.
     
@@ -72,34 +130,42 @@ def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str]) ->
     db_client = DBClient(influxdb_cfg['token'], influxdb_cfg['org'], influxdb_cfg['url'], influxdb_cfg['bucket'])
 
     # Load the past 24 hours of LDR sensor data from the database
-    time_series_df = db_client.load_timeseries("24h", ldr_sensor.sensor_id)
+    time_series_df = db_client.load_timeseries("inf", ldr_sensor.sensor_id)
     
     # Preprocess the time series data to remove outliers
-    time_series_preprocess_df = preprocess_timeseries(time_series_df, 1.5)
+    time_series_preprocess_df = preprocess_timeseries(time_series_df, 1)
     y_values = time_series_preprocess_df['y'].values.reshape(-1, 1)
     time_series_preprocess_df['y'] = scaler.fit_transform(y_values)
 
+    start_training = datetime.now()
     # Create and fit the Prophet model on the preprocessed data
-    model = Prophet(interval_width=0.95, daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False)
+    model = Prophet(interval_width=0.95, daily_seasonality=True, weekly_seasonality=False, yearly_seasonality=False, holidays=holidays)
     model.fit(time_series_preprocess_df)
     
     # Generate predictions for the next period based on the sensor's sampling period
-    period = int(30 * 60 / ldr_sensor.cs_sampling_period)  # 30 minutes worth of future data
-    future_points = model.make_future_dataframe(periods=period, freq=f'{ldr_sensor.cs_sampling_period}s')
+    # period = int(120 * 60 / ldr_sensor.cs_sampling_period)  # 30 minutes worth of future data
+    # future_points = model.make_future_dataframe(periods=period, freq=f'{ldr_sensor.cs_sampling_period}s')
+    future_points = model.make_future_dataframe(periods=4, freq=f'{influxdb_cfg['prediction_period_min']}min')
     
     # Get the predicted values for the future points
     pred_df = model.predict(future_points)
     pred_df['yhat'] = scaler.inverse_transform(pred_df[['yhat']])
-    future_val = pred_df[pred_df['ds'] > datetime.now()]  # Filter future values after current time
+    pred_df['yhat_lower'] = scaler.inverse_transform(pred_df[['yhat_lower']])
+    pred_df['yhat_upper'] = scaler.inverse_transform(pred_df[['yhat_upper']])
+    future_val = pred_df[pred_df['ds'] >= datetime.now()]  # Filter future values after current time
+    logger.debug(f"Predicted {future_val['yhat'].shape[0]} future points")
 
     # Log the predictions for the sensor
-    logger.info(f"Predictions LDR{ldr_sensor.sensor_id}: \n{future_val[['yhat']].head(2)}")
-    
+    logger.debug(f"Predicted: lower({future_val['yhat_lower'].values[0]:.2f}), pred({future_val['yhat'].values[0]:.2f}), upper({future_val['yhat_upper'].values[0]:.2f})")
+    list(map(lambda x: logger.debug(f"{x: .2f}"), future_val['yhat'].values))
+    list(map(lambda x: logger.debug(f"{x}"), future_val['ds'].values))
     # Store the predictions back in the database
     db_client.store_predictions(future_val, ldr_sensor.sensor_id)
+    db_client.store_predictions_lower(future_val, ldr_sensor.sensor_id)
+    db_client.store_predictions_upper(future_val, ldr_sensor.sensor_id)
 
 
-def preprocess_timeseries(time_series_df: pd.DataFrame, std_threshold: float, window_size: str = "24h") -> pd.DataFrame:
+def preprocess_timeseries(time_series_df: pd.DataFrame, std_threshold: float, window_size: str = "1h") -> pd.DataFrame:
     """
     Preprocesses the LDR sensor time-series data by removing outliers based on a standard deviation threshold.
     
@@ -168,3 +234,4 @@ def preprocess_timeseries(time_series_df: pd.DataFrame, std_threshold: float, wi
     time_series_processed_df.dropna(subset=['y'], inplace=True)
 
     return time_series_processed_df
+

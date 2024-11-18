@@ -19,16 +19,14 @@ import json
 import logging
 from watchdog.observers import Observer
 import sys
-
-# Adding the source directory to the system path for module imports
-sys.path.append(r'C:\Users\loryg\OneDrive - Alma Mater Studiorum Università di Bologna\Università\Lezioni\IV Ciclo\IoT\Proj\src\Python')
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from comm import *  # Communication-related utilities (e.g., MQTT or CoAP handling)
 from tools import *  # General utility functions for the script
 from sensorInfo import *  # Sensor-specific information and classes
 
 # Initialize logger for the data proxy
-logger = logging.getLogger("DATA PROXY")
+logger = logging.getLogger("data proxy")
 logger.setLevel(logging.INFO)
 
 # ANSI color codes for terminal output

@@ -17,6 +17,8 @@ limitations under the License.
 import logging
 import asyncio
 import paho.mqtt.client as mqtt
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from sensorInfo import Position
 

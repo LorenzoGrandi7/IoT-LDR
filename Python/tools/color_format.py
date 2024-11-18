@@ -16,6 +16,8 @@ limitations under the License.
 
 from colorama import Fore, Style, init
 import logging
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 # Initialize colorama to automatically reset colors after each log message.
 init(autoreset=True)

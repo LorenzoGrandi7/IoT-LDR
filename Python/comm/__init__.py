@@ -13,11 +13,13 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 from .ldr_sensor_manager import LdrSensorManager
 from .mqtt_client import MqttClient
 from .db_client import DBClient
-from .processing import *
+from .processing import model_predict, generate_holidays, preprocess_timeseries
 
 __all__ = ['LdrSensorManager', 'MqttClient', 'DBClient',
-           'model_predict']
+           'model_predict', 'generate_holidays', 'preprocess_timeseries']

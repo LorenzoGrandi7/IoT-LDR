@@ -15,6 +15,8 @@ limitations under the License.
 """
 
 from dataclasses import dataclass
+import sys
+sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
 @dataclass
 class Plant():
