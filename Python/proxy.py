@@ -108,8 +108,7 @@ async def setup_sensors(default_config: dict, sensors_config: dict) -> list:
                                       sensor_id, 
                                       position, 
                                       plant, 
-                                      sampling_period, 
-                                      accum_window)
+                                      sampling_period)
         ldr_sensor.print_info()
         ldr_sensors.append(ldr_sensor)
     
@@ -148,13 +147,12 @@ async def reload_sensors():
             sensor_id = sensor_cfg['id']
             
             # Check if the sensor already exists in the current list
-            existing_sensor = next((ldr for ldr in ldr_sensors if ldr.sensor_id == sensor_id), None)
+            existing_sensor: LdrSensorManager = next((ldr for ldr in ldr_sensors if ldr.sensor_id == sensor_id), None)
                 
             if existing_sensor:
                 # Update the existing sensor's configuration
                 existing_sensor.update_sensor(Position(**sensor_cfg['position']), 
-                                              sensor_cfg['sampling_period'], 
-                                              sensor_cfg['accumulation_window'], 
+                                              sensor_cfg['sampling_period'],
                                               Plant(**sensor_cfg['plant']))
                 logger.debug(f"Updated sensor {sensor_id} with new config.")
                 existing_sensor.print_info()

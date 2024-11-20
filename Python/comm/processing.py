@@ -133,7 +133,7 @@ def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str], ho
     time_series_df = db_client.load_timeseries("inf", ldr_sensor.sensor_id)
     
     # Preprocess the time series data to remove outliers
-    time_series_preprocess_df = preprocess_timeseries(time_series_df, 1)
+    time_series_preprocess_df = preprocess_timeseries(time_series_df, 1.5)
     y_values = time_series_preprocess_df['y'].values.reshape(-1, 1)
     time_series_preprocess_df['y'] = scaler.fit_transform(y_values)
 
@@ -156,7 +156,7 @@ def model_predict(ldr_sensor: LdrSensorManager, influxdb_cfg: dict[str, str], ho
     logger.debug(f"Predicted {future_val['yhat'].shape[0]} future points")
 
     # Log the predictions for the sensor
-    logger.debug(f"Predicted: lower({future_val['yhat_lower'].values[0]:.2f}), pred({future_val['yhat'].values[0]:.2f}), upper({future_val['yhat_upper'].values[0]:.2f})")
+    logger.info(f"Predicted: lower({future_val['yhat_lower'].values[0]:.2f}), pred({future_val['yhat'].values[0]:.2f}), upper({future_val['yhat_upper'].values[0]:.2f})")
     list(map(lambda x: logger.debug(f"{x: .2f}"), future_val['yhat'].values))
     list(map(lambda x: logger.debug(f"{x}"), future_val['ds'].values))
     # Store the predictions back in the database

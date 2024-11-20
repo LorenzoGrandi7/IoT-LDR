@@ -52,22 +52,14 @@ class LdrSensorManager(resource.Resource):
         Current sampling period for CoAP communication (in seconds).
     ns_sampling_period : int
         Updated sampling period, applied dynamically if changed.
-    accum_window_len : int
-        Number of messages used to compute the latency mean.
-    latency_list : np.array
-        Array to store latency values for analysis.
     ldr_timeseries : np.array
         Stores the time-series data for LDR values.
     coap_ldr_value : int
         Latest LDR value received via CoAP communication.
-    last_time : float
-        Timestamp of the last received CoAP message.
-    receive_latency : float
-        Latency between expected and actual receipt of a CoAP message.
     """
 
     def __init__(self, coap_cfg: dict[str, None], mqtt_cfg: dict[str, None], influxdb_cfg: dict[str, str],
-                 sensor_id: str, position: Position, plant: Plant, sampling_period: int, accum_window_len: int) -> None:
+                 sensor_id: str, position: Position, plant: Plant, sampling_period: int) -> None:
         """
         Initializes the LDR Sensor Manager.
 
@@ -87,12 +79,12 @@ class LdrSensorManager(resource.Resource):
             Information about the associated plant.
         sampling_period : int
             Sampling period in seconds for CoAP communication.
-        accum_window_len : int
-            Duration (in minutes) for computing latency mean.
         """
         super().__init__()
         self.logger = logging.getLogger("CoAP")
         self.logger.setLevel(logging.INFO)
+
+        self.put_response_p = "OK"
 
         self.LDR_start_timeseries = datetime.datetime.now()
         self.coap_cfg = coap_cfg
@@ -106,10 +98,6 @@ class LdrSensorManager(resource.Resource):
         self.position.sensor_id = sensor_id
         self.cs_sampling_period = sampling_period
         self.ns_sampling_period = sampling_period
-        self.last_time = 0
-        self.receive_latency = 0
-        self.latency_list = np.array([], dtype=float)
-        self.accum_window_len = accum_window_len * 60 / sampling_period
         self.coap_ldr_value = 0
         self.ldr_timeseries = np.array([], dtype=int)
 
@@ -119,7 +107,7 @@ class LdrSensorManager(resource.Resource):
         """
         self.logger.debug(f"ID: {self.sensor_id}, position: {self.position.name}, sampling period: {self.cs_sampling_period}")
 
-    async def render_put(self, request) -> Message:
+    async def render_put(self, request: Message) -> Message:
         """
         Handles CoAP PUT requests for receiving LDR data updates.
 
@@ -130,7 +118,7 @@ class LdrSensorManager(resource.Resource):
 
         Returns
         -------
-        Message
+        response: Message
             Response indicating the request was successfully processed.
         """
         decoded_string = request.payload.decode('utf-8')
@@ -142,8 +130,8 @@ class LdrSensorManager(resource.Resource):
         self.logger.info(f"CoAP message received: ID({sensor_id}) - position({location}) - value({data}%)")
 
         self.store_value(query_params)
-        message = Message(code=aiocoap.CHANGED, payload=request.payload)
-        return message
+        response = Message(code=aiocoap.CHANGED, payload=self.put_response_p.encode('utf-8'))
+        return response
 
     async def coap_server(self) -> None:
         """
@@ -156,7 +144,7 @@ class LdrSensorManager(resource.Resource):
         await aiocoap.Context.create_server_context(root, bind=(self.coap_cfg['coap_ip'], self.coap_cfg['coap_port']))
         await asyncio.get_running_loop().create_future()
 
-    def update_sensor(self, position: Position, sampling_period: int, accum_window_len: int, plant: Plant) -> None:
+    def update_sensor(self, position: Position, sampling_period: int, plant: Plant) -> None:
         """
         Updates the sensor configuration dynamically.
 
@@ -166,15 +154,12 @@ class LdrSensorManager(resource.Resource):
             New sensor position.
         sampling_period : int
             New sampling period in seconds.
-        accum_window_len : int
-            New accumulation window length in minutes.
         plant : Plant
             Updated plant information.
         """
         self.position = position
         self.ns_sampling_period = sampling_period
         self.plant = plant
-        self.accum_window_len = accum_window_len * 60 / sampling_period
 
         self.mqtt_client.update_sensor(position, sampling_period)
 
@@ -187,44 +172,5 @@ class LdrSensorManager(resource.Resource):
         content : dict[str, str]
             Dictionary containing CoAP message parameters.
         """
-        self.store_timestamp(datetime.datetime.now().timestamp())
         self.coap_ldr_value = content.get('data')
         self.influxdb_client.store_value("ldrValue", "ldr", self.sensor_id, self.coap_ldr_value)
-
-    def store_timestamp(self, receive_time: float) -> None:
-        """
-        Stores the timestamp of the received CoAP message, handling sampling period changes.
-
-        Parameters
-        ----------
-        receive_time : float
-            Timestamp of the CoAP message receipt.
-        """
-        if self.ns_sampling_period != self.cs_sampling_period:
-            self.logger.info("Flushing the latency accumulator.")
-            self.latency_list = np.array([], dtype=float)
-            self.cs_sampling_period = self.ns_sampling_period
-        elif self.last_time:
-            self.receive_latency = receive_time - self.last_time - self.cs_sampling_period
-
-        self.last_time = receive_time
-        self.latency_list = np.append(self.latency_list, self.receive_latency)
-
-        if len(self.latency_list) == int(self.accum_window_len):
-            latency_mean = self.compute_latency_mean()
-            self.influxdb_client.store_mean_lat_influxdb(latency_mean, self.sensor_id)
-
-    def compute_latency_mean(self) -> float:
-        """
-        Computes the mean latency for the accumulated CoAP messages.
-
-        Returns
-        -------
-        float
-            The mean latency in microseconds.
-        """
-        latency_mean = np.mean(self.latency_list) * 1e6
-        self.latency_list = np.array([], dtype=float)
-        self.logger.info(f"Mean latency sensor {self.sensor_id}: {latency_mean:.2f}us")
-        self.influxdb_client.store_mean_lat_influxdb(latency_mean, self.sensor_id)
-        return latency_mean

@@ -7,7 +7,7 @@ License: Apache License, Version 2.0
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, time
 import sys
 sys.path.append(r'C:\Users\loryg\OneDrive\Desktop\IoT\IoT-LDR\Python')
 
@@ -109,17 +109,17 @@ async def setup_sensors(default_config: dict, sensors_config: dict) -> list:
                                       sampling_period, accum_window)
         ldr_sensor.print_info()
         ldr_sensors.append(ldr_sensor)
-    
     return ldr_sensors
 
 async def update_holidays():
     global current_holidays
 
     while True:
-        # Update holidays once every day
-        current_holidays = generate_holidays(datetime.now().year, datetime.now().date().year + 1)
-        logger.critical("Updating holidays")
-        await asyncio.sleep(86400)
+        # Update holidays once every day at midnight
+        if datetime.now().time() == time(0, 0):
+            current_holidays = generate_holidays(datetime.now().year, datetime.now().date().year + 1)
+            logger.critical("Updating holidays")
+        await asyncio.sleep(30)
 
 async def reload_sensors():
     """
@@ -201,11 +201,12 @@ async def main():
             await asyncio.sleep(1)  # wait for holidays to be initialized
 
         # Perform in parallel prediction for each sensor
-        await asyncio.gather(*[asyncio.to_thread(model_predict, ldr_sensor, influxdb_cfg, current_holidays) for ldr_sensor in ldr_sensors])
+        await asyncio.gather(*[asyncio.to_thread(model_predict, ldr_sensor, influxdb_cfg, current_holidays) for ldr_sensor in ldr_sensors],
+                             )
         
         # Reload sensor configurations to reflect updates
         await reload_sensors()
-        # Pause for 30 seconds between cycles
+        # Pause for 30min between cycles
         await asyncio.sleep(influxdb_cfg['prediction_period_min'] * 60)
 
 if __name__ == "__main__":
